@@ -95,7 +95,7 @@ def main():
                 else:
                     message[state_idx] = colored(message[state_idx], "red")
                 
-                jobs_message.append("".join(message))
+                jobs_message.append("".join(message[1:]))
 
                 save_jobid(job[0], str(date), state)
 
