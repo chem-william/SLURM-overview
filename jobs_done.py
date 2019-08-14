@@ -77,10 +77,9 @@ def get_finished_jobs(lines, n_cmds, state_idx):
                 job.append(lines[idx + i])
 
             # Don't bother with jobs that are still running
-            if job[state_idx] == "RUNNING":
-                job = []
-            else:
+            if job[state_idx] != "RUNNING":
                 jobs.append(job)
+
     return jobs
 
 
@@ -104,7 +103,7 @@ def create_print(jobs, prev_jobs, state_idx):
 
             save_jobid(job[0], str(date), state)
 
-        return jobs_message
+    return jobs_message
 
 
 
