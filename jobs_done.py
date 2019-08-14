@@ -1,4 +1,5 @@
 #!/opt/rh/rh-python36/root/usr/bin/python
+import argparse
 import os
 import time
 from datetime import datetime
@@ -48,12 +49,7 @@ def save_date():
     open(PREV_JOBS, "w").write("\n".join(lines))
 
 
-def main():
-    prev_jobs, last_session = check_prev_jobs()
-    
-    format_cmd = "--format=JobId,jobname,alloccpus,elapsed,start,state"
-    n_cmds = len(format_cmd.split(","))
-    state_idx = format_cmd.split(",").index("state")
+def call_sacct(last_session, format_cmd):
     cmd = ["sacct", "-u", "williamb", format_cmd, "-n"]
     if last_session:
         cmd.append("-S")
@@ -63,53 +59,81 @@ def main():
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT)
     stdout, stderr = out.communicate()
-    
+
     if stderr == None:
-        lines = stdout.decode().split()
-        count = 0
-        jobs = []
-        for idx, line in enumerate(lines):
-            if line.isdigit() and len(line) > 3:
-                job = []
-                for i in range(n_cmds):
-                    job.append(lines[idx + i])
-
-                # Don't bother with jobs that are still running
-                if job[state_idx] == "RUNNING":
-                    job = []
-                else:
-                    jobs.append(job)
-
-        count = 0
-        jobs_message = []
-        for job in jobs:
-            if job[0] not in prev_jobs:
-                state = job[state_idx]
-                date = datetime.strptime(job[4], DATE_FORMAT)
-                job[4] = str(date.strftime("%b-%d"))
-                message = [x + " "*(WIDTH - len(x)) for x in job]
-
-                # Show COMPLETED as green and FAILED/CANCELLED etc. as red
-                if message[state_idx].strip() == "COMPLETED":
-                    message[state_idx] = colored(message[state_idx].strip(), "green")
-                else:
-                    message[state_idx] = colored(message[state_idx], "red")
-                
-                jobs_message.append("".join(message[1:]))
-
-                save_jobid(job[0], str(date), state)
-
-                count += 1
-        if count != 0:
-            print(colored("Jobs completed since last session:", attrs=["bold", "underline"]))
-            for job in jobs_message:
-                print(job)
-        else:
-            last_session = datetime.strptime(last_session, DATE_FORMAT)
-            print(colored(f"No jobs has finished since {last_session.date()}", attrs=["bold", "underline"]))
-        save_date()
+        return stdout.decode()
     else:
-        print(stderr.decode())
+        raise RuntimeError(stderr.decode())
+
+
+def get_finished_jobs(lines, n_cmds, state_idx):
+    jobs = []
+    for idx, line in enumerate(lines):
+        if line.isdigit() and len(line) > 3:
+            job = []
+            for i in range(n_cmds):
+                job.append(lines[idx + i])
+
+            # Don't bother with jobs that are still running
+            if job[state_idx] == "RUNNING":
+                job = []
+            else:
+                jobs.append(job)
+    return jobs
+
+
+def create_print(jobs, prev_jobs, state_idx):
+    jobs_message = []
+    for job in jobs:
+        if job[0] not in prev_jobs and "PENDING" not in job:
+            state = job[state_idx]
+            date = datetime.strptime(job[4], DATE_FORMAT)
+            job[4] = str(date.strftime("%b-%d"))
+            message = [x + " "*(WIDTH - len(x)) for x in job]
+
+            # Show COMPLETED as green and FAILED/CANCELLED etc. as red
+            if message[state_idx].strip() == "COMPLETED":
+                message[state_idx] = colored(message[state_idx].strip(), "green")
+            else:
+                message[state_idx] = colored(message[state_idx], "red")
+            
+            # Skip jobid when printing
+            jobs_message.append("".join(message[1:]))
+
+            save_jobid(job[0], str(date), state)
+
+        return jobs_message
+
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Get info on finished jobs")
+    parser.add_argument("--day", help="Show finished jobs since 00:00 today")
+
+    prev_jobs, last_session = check_prev_jobs()
+
+    format_cmd = "--format=JobId,jobname,alloccpus,elapsed,start,state"
+    n_cmds = len(format_cmd.split(","))
+    state_idx = format_cmd.split(",").index("state")
+
+    sacct_output = call_sacct(last_session, format_cmd)
+
+    lines = sacct_output.split()
+    jobs = get_finished_jobs(lines, n_cmds, state_idx)
+    jobs_message = create_print(jobs, prev_jobs, state_idx)
+
+    if jobs_message:
+        print(colored("Jobs completed since last session:", attrs=["bold", "underline"]))
+        headers = [
+                colored((x + " "*(WIDTH - len(x))).capitalize(), attrs=["bold"]) for x in format_cmd[9:].split(",")
+            ]
+        print("".join(headers[1:]))
+        for job in jobs_message:
+            print(job)
+    else:
+        last_session = datetime.strptime(last_session, DATE_FORMAT)
+        print(colored(f"No jobs has finished since {last_session.date()}", attrs=["bold", "underline"]))
+    save_date()
 
 
 if __name__ == "__main__":
