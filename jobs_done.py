@@ -30,12 +30,14 @@ def save_jobid(jobid, date, state):
     with open(STATS_FILE, "a+") as f:
         f.write(jobid + ";" + date + ";" + state + "\n")
 
+
 def isTime(input):
     try:
         time.strptime(input, "%H:%M")
         return True
     except ValueError:
         return False
+
 
 def save_date():
     lines = open(PREV_JOBS).read().splitlines()
@@ -49,11 +51,11 @@ def save_date():
     open(PREV_JOBS, "w").write("\n".join(lines))
 
 
-def call_sacct(last_session, format_cmd):
+def call_sacct(start_time, format_cmd):
     cmd = ["sacct", "-u", "williamb", format_cmd, "-n"]
-    if last_session:
+    if start_time:
         cmd.append("-S")
-        cmd.append(last_session)
+        cmd.append(start_time)
 
     out = subprocess.Popen(cmd,
             stdout=subprocess.PIPE,
@@ -108,7 +110,12 @@ def create_print(jobs, prev_jobs, state_idx):
 
 def main():
     parser = argparse.ArgumentParser(description="Get info on finished jobs")
-    parser.add_argument("--day", help="Show finished jobs since 00:00 today")
+    parser.add_argument(
+            "--day",
+            default=False,
+            action="store_true",
+            help="Show finished jobs since 00:00 today"
+        )
 
     prev_jobs, last_session = check_prev_jobs()
 
@@ -116,7 +123,11 @@ def main():
     n_cmds = len(format_cmd.split(","))
     state_idx = format_cmd.split(",").index("state")
 
-    sacct_output = call_sacct(last_session, format_cmd)
+    args = parser.parse_args()
+    if args.day:
+        sacct_output = call_sacct("00:00", format_cmd)
+    else:
+        sacct_output = call_sacct(last_session, format_cmd)
 
     lines = sacct_output.split()
     jobs = get_finished_jobs(lines, n_cmds, state_idx)
