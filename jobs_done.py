@@ -83,10 +83,18 @@ def get_finished_jobs(lines, n_cmds, state_idx):
     return jobs
 
 
-def create_print(jobs, prev_jobs, state_idx):
+def create_print(jobs, prev_jobs, state_idx, day):
     jobs_message = []
+
     for job in jobs:
+        
+        #XXX: hack to get jobindex to show when called with --day
+        job_idx = job[0]
+        if day:
+            job[0] = "0"
+
         if job[0] not in prev_jobs and "PENDING" not in job:
+            job[0] = job_idx
             state = job[state_idx]
             date = datetime.strptime(job[4], DATE_FORMAT)
             job[4] = str(date.strftime("%b-%d"))
@@ -99,9 +107,10 @@ def create_print(jobs, prev_jobs, state_idx):
                 message[state_idx] = colored(message[state_idx], "red")
             
             # Skip jobid when printing
-            jobs_message.append("".join(message[1:]))
-
-            save_jobid(job[0], str(date), state)
+            jobs_message.append("".join(message))
+            
+            if not day:
+                save_jobid(job[0], str(date), state)
 
     return jobs_message
 
@@ -130,14 +139,14 @@ def main():
 
     lines = sacct_output.split()
     jobs = get_finished_jobs(lines, n_cmds, state_idx)
-    jobs_message = create_print(jobs, prev_jobs, state_idx)
+    jobs_message = create_print(jobs, prev_jobs, state_idx, args.day)
 
     if jobs_message:
         print(colored("Jobs completed since last session:", attrs=["bold", "underline"]))
         headers = [
                 colored((x + " "*(WIDTH - len(x))).capitalize(), attrs=["bold"]) for x in format_cmd[9:].split(",")
             ]
-        print("".join(headers[1:]))
+        print("".join(headers))
         for job in jobs_message:
             print(job)
     else:
