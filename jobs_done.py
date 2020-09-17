@@ -1,16 +1,17 @@
 #!/opt/rh/rh-python36/root/usr/bin/python
+from datetime import datetime
 import argparse
 import os
-import time
-from datetime import datetime
-from termcolor import colored
 import subprocess
+import time
+import numpy as np
+from termcolor import colored
 
 
 PREV_JOBS = os.path.dirname(os.path.realpath(__file__)) + "/prev_job"
 STATS_FILE = os.path.dirname(os.path.realpath(__file__)) + "/stats"
 DATE_FORMAT = "%Y-%m-%dT%H:%M:%S"
-WIDTH = 12
+WIDTH = 24
 
 
 def check_prev_jobs():
