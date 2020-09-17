@@ -158,7 +158,7 @@ def main():
 
     prev_jobs, last_session = check_prev_jobs()
 
-    format_cmd = "--format=JobId,jobname,alloccpus,elapsed,start,state"
+    format_cmd = "--format=jobid,jobname%30,alloccpus,elapsed,start,end,state"
     n_cmds = len(format_cmd.split(","))
     state_idx = format_cmd.split(",").index("state")
 
