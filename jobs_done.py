@@ -174,9 +174,21 @@ def main():
 
     if jobs_message:
         print(colored("Jobs completed since last session:", attrs=["bold", "underline"]))
-        headers = [
-                colored((x + " "*(WIDTH - len(x))).capitalize(), attrs=["bold"]) for x in format_cmd[9:].split(",")
-            ]
+        headers = []
+        for cmd in format_cmd[9:].split(","):
+            if cmd == "alloccpus":
+                temp = colored("CPUs ", attrs=["bold"])
+            elif cmd == "jobid":
+                temp = colored("Job ID    ", attrs=["bold"])
+            elif cmd == "elapsed":
+                temp = colored("Elapsed   ", attrs=["bold"])
+            elif cmd == "start":
+                temp = colored("Start         ", attrs=["bold"])
+            elif cmd == "end":
+                temp = colored("End           ", attrs=["bold"])
+            else:
+                temp = colored((cmd + " "*(WIDTH - len(cmd))).capitalize(), attrs=["bold"])
+            headers.append(temp)
         print("".join(headers))
         for job in jobs_message:
             print(job)
