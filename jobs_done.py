@@ -86,9 +86,9 @@ def get_finished_jobs(lines, n_cmds, state_idx):
 
 def create_print(jobs, prev_jobs, state_idx, day):
     jobs_message = []
+    sorting_dates = []
 
     for job in jobs:
-        
         #XXX: hack to get jobindex to show when called with --day
         job_idx = job[0]
         if day:
@@ -97,24 +97,54 @@ def create_print(jobs, prev_jobs, state_idx, day):
         if job[0] not in prev_jobs and "PENDING" not in job:
             job[0] = job_idx
             state = job[state_idx]
-            date = datetime.strptime(job[4], DATE_FORMAT)
-            job[4] = str(date.strftime("%b-%d"))
+
+            start = datetime.strptime(job[4], DATE_FORMAT)
+            job[4] = str(start.strftime("%b-%d %H:%M"))
+            if "Unknown" != job[5]:
+                end = datetime.strptime(job[5], DATE_FORMAT)
+                job[5] = str(end.strftime("%b-%d %H:%M"))
+            else:
+                job[5] = "Unknown"
+
             message = [x + " "*(WIDTH - len(x)) for x in job]
+            message = []
+            for idx, txt in enumerate(job):
+                if idx == 0:  # Format job ID
+                    message.append(f"{txt:<10}")
+
+                elif idx == 2:  # Format CPUs
+                    message.append(f"{txt:<5}")
+
+                elif idx == 3:  # Format Elapsed
+                    message.append(f"{txt:<10}")
+
+                elif idx == 4:  # Format Start
+                    message.append(f"{txt:<14}")
+
+                elif idx == 5:  # Format End
+                    message.append(f"{txt:<14}")
+
+                else:
+                    message.append(txt + " "*(WIDTH - len(txt)))
 
             # Show COMPLETED as green and FAILED/CANCELLED etc. as red
             if message[state_idx].strip() == "COMPLETED":
                 message[state_idx] = colored(message[state_idx].strip(), "green")
             else:
                 message[state_idx] = colored(message[state_idx], "red")
+
+            sorting_dates.append(message[4])
             
             # Skip jobid when printing
             jobs_message.append("".join(message))
             
             if not day:
-                save_jobid(job[0], str(date), state)
+                save_jobid(job[0], str(start), state)
 
+    sorted_indices = np.argsort(sorting_dates)
+    jobs_message = np.array(jobs_message)[sorted_indices]
+    jobs_message = list(jobs_message)
     return jobs_message
-
 
 
 def main():
