@@ -58,9 +58,11 @@ def call_sacct(start_time, format_cmd):
         cmd.append("-S")
         cmd.append(start_time)
 
-    out = subprocess.Popen(cmd,
+    out = subprocess.Popen(
+            cmd,
             stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT)
+            stderr=subprocess.STDOUT
+        )
     stdout, stderr = out.communicate()
 
     if stderr == None:
@@ -89,7 +91,7 @@ def create_print(jobs, prev_jobs, state_idx, day):
     sorting_dates = []
 
     for job in jobs:
-        #XXX: hack to get jobindex to show when called with --day
+        # XXX: hack to get jobindex to show when called with --day
         job_idx = job[0]
         if day:
             job[0] = "0"
@@ -129,15 +131,17 @@ def create_print(jobs, prev_jobs, state_idx, day):
 
             # Show COMPLETED as green and FAILED/CANCELLED etc. as red
             if message[state_idx].strip() == "COMPLETED":
-                message[state_idx] = colored(message[state_idx].strip(), "green")
+                message[state_idx] = colored(
+                    message[state_idx].strip(), "green"
+                )
             else:
                 message[state_idx] = colored(message[state_idx], "red")
 
             sorting_dates.append(message[4])
-            
+
             # Skip jobid when printing
             jobs_message.append("".join(message))
-            
+
             if not day:
                 save_jobid(job[0], str(start), state)
 
@@ -173,7 +177,12 @@ def main():
     jobs_message = create_print(jobs, prev_jobs, state_idx, args.day)
 
     if jobs_message:
-        print(colored("Jobs completed since last session:", attrs=["bold", "underline"]))
+        print(
+            colored(
+                "Jobs completed since last session:",
+                attrs=["bold", "underline"]
+            )
+        )
         headers = []
         for cmd in format_cmd[9:].split(","):
             if cmd == "alloccpus":
@@ -187,14 +196,21 @@ def main():
             elif cmd == "end":
                 temp = colored("End           ", attrs=["bold"])
             else:
-                temp = colored((cmd + " "*(WIDTH - len(cmd))).capitalize(), attrs=["bold"])
+                temp = colored(
+                    (cmd + " "*(WIDTH - len(cmd))).capitalize(), attrs=["bold"]
+                )
             headers.append(temp)
         print("".join(headers))
         for job in jobs_message:
             print(job)
     else:
         last_session = datetime.strptime(last_session, DATE_FORMAT)
-        print(colored(f"No jobs has finished since {last_session.date()}", attrs=["bold", "underline"]))
+        print(
+            colored(
+                f"No jobs has finished since {last_session.date()}",
+                attrs=["bold", "underline"]
+            )
+        )
     save_date()
 
 
