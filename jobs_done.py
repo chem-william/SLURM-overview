@@ -65,7 +65,7 @@ def call_sacct(start_time, format_cmd):
         )
     stdout, stderr = out.communicate()
 
-    if stderr == None:
+    if stderr is None:
         return stdout.decode()
     else:
         raise RuntimeError(stderr.decode())
@@ -96,7 +96,8 @@ def create_print(jobs, prev_jobs, state_idx, day):
         if day:
             job[0] = "0"
 
-        if job[0] not in prev_jobs and "PENDING" not in job:
+        skip_states = ["PENDING", "Unknown"]
+        if job[0] not in prev_jobs and not any(state in job for state in skip_states):
             job[0] = job_idx
             state = job[state_idx]
 
